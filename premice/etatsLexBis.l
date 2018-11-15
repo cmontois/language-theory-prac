@@ -14,7 +14,7 @@ ident   [a-zA-Z][a-zA-Z0-9_]*
 
 "quit"          {printf("mot cle: quit\n"); };
 {ident}         {printf("identifiant: %s\n", yytext); };
-<<EOF>>         return 0;
+<<EOF>>         return 1;
 %%
 
 int main() {

@@ -1,9 +1,16 @@
-# Premice pratical work exe
+# Premice pratical work exe and compiled files
 /premice/lex.yy.c
 /premice/etatsLexBis
 /premice/etatsLex
 
-# Counter pratical work exe
+# Counter pratical work exe and compiled files
 /counter/lex.yy.c
 /counter/counter
 /counter/example
+
+# Yacc practical work exe and compiled files
+/yacc/etats.c
+/yacc/y.tab.c
+/yacc/y.tab.h
+/yacc/expr.tab.c
+/yacc/expr.tab.h

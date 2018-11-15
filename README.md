@@ -25,3 +25,17 @@ Simply press CTRL + D, to exit your program smoothly
 ```
 %x COMMENT
 ```
+
+## Lex compilation
+
+Create lex.yy.c file + your exe: filename
+
+## Yacc (=Yet Another C Compiler) / Bison (For the Joke :D) compilation
+
+yacc filename.y => y.tab.c
+Create y.tab.h file + a file: filename.c
+
+Steps:
+1/ Compile .h
+2/ Compile lex ?
+3/
