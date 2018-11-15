@@ -1,0 +1,9 @@
+# Premice pratical work exe
+/premice/lex.yy.c
+/premice/etatsLexBis
+/premice/etatsLex
+
+# Counter pratical work exe
+/counter/lex.yy.c
+/counter/counter
+/counter/example
