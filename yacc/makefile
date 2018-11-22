@@ -13,4 +13,4 @@ expr-bison:
 
 
 clean:
-	rm -rf y.tab.c y.tab.h expr.tab.c expr.tab.h lex.yy.c
+	rm -rf y.tab.c y.tab.h expr.tab.c expr.tab.h lex.yy.c expr

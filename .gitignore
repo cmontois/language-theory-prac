@@ -9,8 +9,9 @@
 /counter/example
 
 # Yacc practical work exe and compiled files
-/yacc/etats.c
 /yacc/y.tab.c
 /yacc/y.tab.h
 /yacc/expr.tab.c
 /yacc/expr.tab.h
+/yacc/lex.yy.c
+/yacc/expr
