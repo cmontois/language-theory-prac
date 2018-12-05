@@ -4,11 +4,13 @@
   int registre[26];
 %}
 %token INT REG
-%token RC AFF PO PF POW INT ADD SUB MUL DIV
+%token RC AFF PO PF POW INT 
+%token ADD SUB MUL DIV
 
 %start list
 %left ADD SUB /*cette ligne est moins prioritaire que la ligne du dessous*/
 %left MUL DIV /*Donc ligne + prioritaire tout en bas (même ligne = même priorité)*/
+%right POW
 %nonassoc UNARYMINUS
 
 %%

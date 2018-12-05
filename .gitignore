@@ -15,3 +15,9 @@
 /yacc/expr.tab.h
 /yacc/lex.yy.c
 /yacc/expr
+
+# hoc (High Order Calculator)
+/hoc/lex.yy.c
+/hoc/hoc.tab.c
+/hoc/hoc.tab.h
+/hoc/hoc
