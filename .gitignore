@@ -21,3 +21,9 @@
 /hoc/hoc.tab.c
 /hoc/hoc.tab.h
 /hoc/hoc
+
+# Mac
+.DS_Store
+
+# Archives
+*.zip
