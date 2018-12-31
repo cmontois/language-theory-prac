@@ -1,107 +1,119 @@
 %{
-      #include "hoc.h"
-      #include "code.h"
-      #include <math.h>
-      void prompt(void);
+    #include "hoc.h"
+    #include <math.h>
+    #include "code.h"
 
-      extern InsMac Prog[];
-      extern InsMac *ProgPtr;
-      extern InsMac *Code();
-      extern InsMac *BaseProg;
+    void prompt(void);
+
+    extern InsMac Prog[];
+    extern InsMac *ProgPtr;
+    extern InsMac *BaseProg;
+
 %}
 
+/*********_********_*********_********_*********_********_***********/
+/*                      Entités, Associativité, Axiome, ....        */
+/*********_********_*********_********_*********_********_***********/
+/* Redéfinition de YYSTYPE = type de la variavle yylval             */
+/* yylval porte la valeur du token reconnu par l'AL                 */
 %union {
-  int           iValue; //nbr entiers
-  double        fValue; //nbr reels
-  symbol_ptr_t  symbol; //identifiant
+    int     iValue;          // nombre entier
+    double  fValue;          // nombre réel
+    symbol_ptr_t symbol;     // identifiant : var,
 }
+// Déclaration des tokens valués avec le type adéquat
+%token <symbol>  NUMINT
+%token <symbol>  NUMFLO
+%token <symbol>  VARINT VARFLO CSTFLO PREDEF UNDEF
+// Déclaration des tokens non-valués
+%token PRINT PRINTS PRINTP PRINTPI
+//Typage des unités syntaxiques
+%type  <fValue> expr asgn
+/* Associativité à gauche de même priorité */
+%left  '+' '-'
+/* Associativité à gauche de priorité superieure */
+%left  '*' '/'
+// Surcharge de l'opération soustraction par le signe
+%left  UNARYMINUS
+//Associativité à droite
+%right '#'
 
-// Déclaration tokens valués avec le type adéquat
-%token <symbol>    NUMINT
-%token <symbol>    NUMFLO
-%token <symbol>    VARINT VARFLO PREDEF UNDEF  CSTFLO
-
-// Déclaration tokens non valués
-%token PRINT
-
-// Typage des unités syntaxiques
-%type <fValue> expr asgn
-
-// Associativité gauche même prio
-%left '+' '-'
-// Associativité gauche prio sup
-%left '*' '/'
-// Surcharge op soustraction par le signe (nbr negatif)
-%left UNARYMINUS
-// Associativité droite
-%left '#'
+/*********_********_*********_********_*********_********_***********/
+/* Debut de la grammaire */
+/*********_********_*********_********_*********_********_***********/
 
 %%
-list:   /* Vide */
-      | list '\n'                               { prompt();}
-      | list asgn '\n'                          { Code(STOP);return 1;}
-      | list expr '\n'                          { Code2(Print, STOP); return 1;}
-      | list error '\n'                         { yerrok; prompt(); }
-      ;
+list:   vide
+    | list '\n'                         { prompt(); }
+    | list asgn '\n'                    { Code(STOP); return 1;}
+    | list expr '\n'                    { Code2(Print, STOP); return 1; }
+    | list error '\n'                   { yyerrok; prompt(); }
+    ;
 
-varAsgn:VARINT                                  { Code2(VarPush, (InsMac) $1); }
-      | VARFLO                                  { Code2(VarPush, (InsMac) $1); }
-      | UNDEF                                   { Code2(VarPush, (InsMac) $1); }
-      ;
-asgn:   varAsgn "=" expr                        { Code3(VAssign); }
-      ;
-expr:   NUMINT                                  { $$ = (double) $1; }
-      | NUMFLO                                  { Code(NbrPush, (InsMac) $1); }
-      | VARINT {
-            typeCheck($1, VARINT, "Undefined variable or not an integer");
-            $$ = (double) $1->value.iValue;
-      }
-      | VARFLO {
+vide:   ;
+
+varAsgn: VARINT                         { Code2(VarPush, (InsMac) $1); }
+    | VARFLO                            { Code2(VarPush, (InsMac) $1); }
+    | UNDEF                             { Code2(VarPush, (InsMac) $1); }
+    ;
+asgn: varAsgn '=' expr                  { Code(Assign); }
+    ;
+
+expr: NUMINT                            { Code2(NbrPush, (InsMac) $1); }
+    | NUMFLO                            { Code2(NbrPush, (InsMac) $1); }
+    | VARINT                            {
+            typeCheck($1, VARINT, "Undefined variable or is not integer");
+            Code3(VarPush, (InsMac) $1, Eval);
+        }
+    | VARFLO                            {
             typeCheck($1, VARFLO, "Undefined variable");
-            $$ = $1->value.iValue;
-      }
-      | CSTFLO {
+            Code3(VarPush, (InsMac) $1, Eval);
+        }
+    | CSTFLO                            {
             typeCheck($1, CSTFLO, "Undefined constante");
-            Code3(NbrPush, (InsMac) $1, Eval);
-            $$ = $1->value.iValue;
-      }
-      | '(' expr ')'                            { Code(Add); }
-      | expr '+' expr                           { Code(Sub); }
-      | expr '-' expr                           { Code(Mul); }
-      | expr '*' expr                           { Code(Div); }
-      | expr '/' expr  {
+            Code2(NbrPush, (InsMac) $1);
+        }
+    | '(' expr ')'                      { $$ = $2; }
+    | expr '+' expr                     { Code(Add); }
+    | expr '-' expr                     { Code(Sub); }
+    | expr '*' expr                     { Code(Mul); }
+    | expr '/' expr                     {
             if ($3 == 0.0) warning("Division par zéro", "FPE");
-            $$ = $1 / $3;
-      }
-      | expr '#' expr                           { Code(Power); }
-      | '-' expr %prec UNARYMINUS               { Code(Negate); }
-      | PREDEF '(' expr ')' {
-            typeCheck($1, PREDEF, "Undefined function");
-            $$ = (*($1->value.func))($3);
-      }
-;
+            Code(Div);
+        }
+    | expr '#' expr                     { Code(Power); }
+    | '-' expr %prec UNARYMINUS         { $$ = -$2; }
+    | PREDEF '(' expr ')'               {
+            typeCheck($1, PREDEF, "Undefined fonction");
+            Code2(Predef,(InsMac)$1->value.func); 
+        }
+	| PRINTS                            { Code((InsMac)printSymbolList);}
+	| PRINTP                            { Code ((InsMac) printProg);}
+	| PRINTPI                           { Code ((InsMac) printPile);}
+    ;
 %%
 
-// Gestion des erreurs
+/*********_********_*********_********_*********_********_***********/
+/*                          Programme principal                     */
+/*********_********_*********_********_*********_********_***********/
+// Gestion des erreurs :
 char *progName;     // Contient le nom du programme
 int lineNo = 0;     // Indique la ligne courante
 
 int main (int argc, char *argv[])          /* Appel de l'AS  */
 {
-      progName = argv[0];
-      fprintf(stdout,"Welcome to the basic calculator.\nImplemented by Clément Montois LA3 ;).\nVersion 0.2\n");
-      installDefaultSymbols();
-      prompt();
-      //yyparse(); /* yyparse() a besoin de yylex() */
-      for(InitCode(); yyparse(); InitCode()) {
-            Execute(BaseProg);
-      }
-      fprintf(stdout, "logout\nsee ya !\n");
-      exit(EXIT_SUCCESS);
+    progName = argv[0];
+    fprintf(stdout,"Welcome to the basic calculator.\nImplemented by Clement Montois.\nVersion 1.0\n");
+    installDefaultSymbols();
+
+    for (InitCode(); yyparse(); InitCode()) Execute(BaseProg);
+
+    fprintf(stdout, "Logout.\nSee you ! !!\n");
+    exit(EXIT_SUCCESS);
 }
 
 void prompt (void)
 {
-      lineNo++;
-      fprintf(stdout, "hoc> ");
+    lineNo++;
+    fprintf(stdout, "hoc> ");
 }

@@ -1,5 +1,6 @@
-//MANIPULATION DES DIFFERENTES STRUCURES
-
+/*********_********_*********_********_*********_********_*********_*******/
+/* MANIPULATION DES DIFFERENTES STRUCURES    */
+/*********_********_*********_********_*********_********_*********_*******/
 #include <stdio.h>
 #include "hoc.h"
 #include "hoc.tab.h"
@@ -16,189 +17,289 @@ InsMac *PC;                  /* Compteur d'execution */
 InsMac *BaseProg;            /* Debut de sous programme */
 int    Returning;            /* 1 si return a ete vu */
 
-// MANIPULATION DE LA PILE DES DONNEES
-
-/**
- * Stocke d en sommet de pile
- */ 
-void Push(Data d) {
-  if (StackPtr >= &Stack[MAXSTACK]) warning("Stack Overflow (push)", NULL);
-  *StackPtr++ = d;
+/*********_********_*********_********_*********_********_*********_*******/
+/* MANIPULATION DE LA PILE DES DONNEES       */
+/*********_********_*********_********_*********_********_*********_*******/
+void Push(Data d)                      /* Stocke d en sommet de pile */
+{
+    if (StackPtr >= &Stack[MAXSTACK]) warning("Stack Overflow (push)", NULL);
+    *StackPtr++ = d;
 }
 
-/**
- * Extrait le sommet de la pile
- */ 
-Data Pop(void) {
-  if (StackPtr <= Stack) warning("Stack empty (pop)", NULL);
-  return *--StackPtr;
+Data Pop(void)                   /* Extrait le sommet de la pile */
+{
+    if (StackPtr <= Stack) warning("Stack empty (pop)", NULL);
+    return *--StackPtr;
+}
+/*********_********_*********_********_*********_********_*********_*******/
+/* MANIPULATION DE LA PILE DES INSTRUCTIONS  */
+/*********_********_*********_********_*********_********_*********_*******/
+InsMac *Code(InsMac f)              /* Installe une instruction machine */
+{   
+    InsMac *Localisation = ProgPtr;
+    if (ProgPtr >= &Prog[MAXPROG]) warning("Bigest program (code)", NULL);
+    *ProgPtr++ = f;
+    #ifdef DEBUG_C
+    printf("\033[32m@PROG=[%px] avec @CODE=[%px]\n\033[%30m", Localisation, f);
+    #endif
+    return Localisation;
 }
 
-//MANIPULATION DE LA PILE DES INSTRUCTIONS
+void Execute(InsMac *p)                   /* Execute le programme p */
 
-/**
- * Installe une instruction machine
- */ 
-InsMac *Code(InsMac f)
-{    
-  InsMac *Localisation = ProgPtr;
-
-  if (ProgPtr >= &Prog[MAXPROG]) warning("Bigest program (code)", NULL);
-  *ProgPtr++ = f;
-  return Localisation;
+{
+    for (PC = p; *PC != STOP && !Returning; ) (*(*PC++)) ();
 }
-
-/**
- * Execute le programme p
- */ 
-void Execute(InsMac *p) {
-  for (PC = p; *PC != STOP && !Returning; ) (*(*PC++)) ();
-}
-
-//CODES ASSOCIES AVEC LES EXPR ALGEBRIQUES
+/*********_********_*********_********_*********_********_*********_*******/
+/* CODES ASSOCIES AVEC LES EXPR ALGEBRIQUES  */
+/*********_********_*********_********_*********_********_*********_*******/
 
 /**
  * Range un nombre
- */ 
-void NbrPush(void) {
-  Data d;
-  d.Value = ((symbol_ptr_t) *PC++)->value.fValue;
-  Push(d);
+ */
+int NbrPush(void)
+{
+    Data d;
+	symbol_ptr_t sp=(symbol_ptr_t)*PC++;
+	if(sp->type==NUMINT)
+		d.Value = sp->value.iValue;
+	else 
+		d.Value=sp->value.fValue;
+	
+    Push(d);
+	return 0;
 }
 
 /**
  * Range une variable
  */
-void VarPush(void) {   
-  Data d;
-  d.Symb = ((symbol_ptr_t) *PC++);
-  
-  if ((d.Symb)->type != VARFLO && d.Symb->type != UNDEF) warning("(VarPush) not a variable", d.Symb->name);
-  Push(d);
+int VarPush()
+{
+    Data d;
+	symbol_ptr_t sp = ((symbol_ptr_t) *PC++);
+    
+    if (sp->type != VARFLO && sp->type != UNDEF && sp->type != VARINT) 
+		warning("(VarPush) not a variable", d.Symb->name);
+	d.Symb=sp;
+	
+    Push(d);
+	return 0;
 }
 
-//OPERATEURS ARITHMETIQUES REELLES
+/**
+ * OPERATEURS ARITHMETIQUES REELLES
+ */
 
 /**
  * Addition
  */
-void Add(void) {   
-  Data d2 = Pop(), d1 = Pop();
-  d1.Value = d1.Value + d2.Value;
-  Push(d1);
+int Add(void)
+{
+    Data d2 = Pop(), d1 = Pop();
+    d1.Value = d1.Value + d2.Value;
+    Push(d1);
+    return 0;
 }
 
 /**
  * Soustraction
  */
-void Sub(void) {   
-  Data d2 = Pop(), d1 = Pop();
-  d1.Value = d1.Value - d2.Value;
-  Push(d1);
+int Sub(void)
+{
+    Data d2 = Pop(), d1 = Pop();
+    d1.Value = d1.Value - d2.Value;
+    Push(d1);
+    return 0;
 }
 
 /**
  * Multiplication
  */
-void Mul(void) {   
-  Data d2 = Pop(), d1 = Pop();
-  d1.Value = d1.Value * d2.Value;
-  Push(d1);
+int Mul(void)
+{
+    Data d2 = Pop(), d1 = Pop();
+    d1.Value = d1.Value * d2.Value;
+    Push(d1);
+    return 0;
 }
 
 /**
  * Division
  */
-void Div(void) {   
-  Data d2 = Pop(), d1 = Pop();
-  if (d2.Value == 0.0) warning("(Div) division by zero", NULL);
-  d1.Value = d1.Value / d2.Value;
-  Push(d1);
+int Div(void)
+{
+    Data d2 = Pop(), d1 = Pop();
+    if (d2.Value == 0.0) warning("(Div) division by zero", NULL);
+    d1.Value = d1.Value / d2.Value;
+    Push(d1);
+    return 0;
 }
 
 /**
  * Puissance
  */
-void Power(void) {   
-  Data d2 = Pop(), d1 = Pop();
-
-  d1.Value = pow(d1.Value, d2.Value);
-  Push(d1);
+int Power(void)
+{
+    Data d2 = Pop(), d1 = Pop();
+    
+    d1.Value = pow(d1.Value, d2.Value);
+    Push(d1);
+    return 0;
 }
 
 /**
  * Oppose
  */
-void Negate(void) {   
-  Data d = Pop();
-  d.Value = - d.Value;
-  Push(d);
+int Negate(void)
+{
+    Data d = Pop();
+    d.Value = - d.Value;
+    Push(d);
+    return 0;
 }
 
-//EVALUATION ET AFFECTATION VARFLO REELLE
+/**
+ * EVALUATION ET AFFECTATION VAR REELLE 
+ */
 
 /**
  * Evaluation
  */
-void Eval(void) {   
-  Data d = Pop();
-  if (d.Symb->type == UNDEF) warning("(Eval) undefined variable", d.Symb->name);
-  d.Value = d.Symb->value.fValue;
-  Push(d);
+int Eval(void)
+{
+    Data d = Pop();
+	
+	#ifdef DEBUG
+		printf("%sEvaluation de  [%s] \n%s", KGRN, d.Symb->name,KNRM);
+	#endif
+	
+    if (d.Symb->type == UNDEF) warning("(Eval) undefined variable", d.Symb->name);
+	if(d.Symb->type==VARINT)
+		d.Value = d.Symb->value.iValue;
+	else
+		d.Value = d.Symb->value.fValue;
+	
+    Push(d);
+    return 0;
 }
 
 /**
  * Assignation
  */
-void Assign(void) {   
-  Data d1 = Pop(), d2 = Pop();
-  if (d1.Symb->type != VARFLO && d1.Symb->type != UNDEF) warning("(Assign) can't assign", d1.Symb->name);
-  d1.Symb->value.fValue = d2.Value;
-  d1.Symb->type    = VARFLO;
+int Assign(void)
+{
+	Data d1 = Pop(), d2 = Pop();
+	if(d2.Symb->type==UNDEF) printf("VARFLO");
+    if (d2.Symb->type != VARINT && d2.Symb->type != UNDEF) warning("(Assign) can't assign", d2.Symb->name);
+	if(d2.Symb->type==VARFLO) {
+		d2.Symb->value.fValue = d1.Value;
+		d2.Symb->type    = VARFLO;
+		#ifdef DEBUG
+		printf("%sAssignation de  [%f] à la variable [%s] \n%s", KGRN, d2.Symb->value.fValue,d2.Symb->name,KNRM);
+		#endif
+	}
+	else {
+		d2.Symb->value.iValue = d1.Value;
+		d2.Symb->type    = VARINT;
+		#ifdef DEBUG
+		printf("%sAssignation de  [%d] à la variable [%s]  \n%s", KGRN, d2.Symb->value.iValue,d2.Symb->name,KNRM);
+		#endif
+    }
+	
+	return 0;
 }
 
-//RESULTAT D'UNE EXPRESSION ALGEBRIQUE
+/**
+ * RESULTAT D'UNE EXPRESSION ALGEBRIQUE
+ */
 
 /**
  * Affichage du resultat d'une expression
  */
-void Print(void) {   
-  Data d = Pop();
-  printf("= %.8g\n", d.Value);
+int Print(void)
+{
+    Data d = Pop();
+    printf("= %.8g\n", d.Value);
+    return 0;
 }
 
 /**
  * Evalue une fonction predefinie
  */
-void Predef(void) {   
-  Data d = Pop();
-  d.Value = (*(double (*)()) (*PC++)) (d.Value);
-  Push(d);
+int Predef(void)
+{
+    Data d = Pop();
+    d.Value = (*(double (*)()) (*PC++)) (d.Value);
+    Push(d);
+    return 0;
 }
 
 /**
  * Affichage d'une expression
  */
-void PrintExpr(void) {
-  Data d;
-  d = Pop();
-  printf("%.8g\n", d.Value);
+int PrintExpr(void)
+{
+    Data d;
+    d = Pop();
+    printf("%.8g\n", d.Value);
+    return 0;
 }
 
-void InitCode(void) {
-  StackPtr  = Stack;
-  ProgPtr   = BaseProg;
-  // Fp        = Frames;
-  Returning = 0;
-  fprintf(stdout, "hoc> ");
+/**
+ *
+ */
+int InitCode(void)
+{
+    StackPtr  = Stack;
+    ProgPtr   = BaseProg = Prog;
+    Returning = 0;
+    #ifdef DEBUG_C
+    printf("\033[31m@PROG=[%px]\t#PILE=[%px]\n\033[%30m", ProgPtr, StackPtr);
+    #endif
+    fprintf(stdout, "hoc> ");
+    return 0;
 }
 
-//LECTURE DES DONNEES
+/**
+ * LECTURE DES DONNEES
+ */
 
 /**
  * Traitement d'une erreur de syntaxe
  */
-void ClrIn(void) {
-  warning("syntax error", NULL);
-  fprintf(stdout, "hoc> ");
+int ClrIn(void)
+{
+    warning("syntax error", NULL);
+    fprintf(stdout, "hoc> ");
+    return 0;
+}
+
+/**
+ * Affichage de la table de code
+ */
+void printProg(void){
+	printf("%sTable de code:\n%s",KBLU,KNRM);
+	char* functs[15] = {"NbrPush","VarPush","Add","Sub","Mul","Div","Power","Negate","Eval","Assign","Print","Predef","PrintExpr","InitCode","ClrIn"};
+    printf("%s-----------------------------------\n%s",KBLU,KNRM);
+    printf("%s|      FUNC      |     ADDRESS    |\n%s",KBLU,KNRM);
+    printf("%s-----------------------------------\n%s",KBLU,KNRM);
+    for(int p=0; p<=14; p++){
+         printf("%s| %10s\t | %p |\n%s", KBLU,functs[p], functs[p],KNRM);
+    }
+    printf("-----------------------------------\n");
+	for(int i =0;i<sizeof(Prog[MAXPROG]);i++){
+		printf("%sInstruction [%p] installée en [%p]\n%s",KBLU,Prog[i],&Prog[i],KNRM);
+		
+	}
+	printf("%s-----------------------------------\n%s",KBLU,KNRM);
+}
+
+/**s
+ * Affichage de la pile
+ */
+void printPile(void){
+	printf("%sPile de données:\n%s",KBLU,KNRM);
+	for(int i =0;i<sizeof(Stack[MAXSTACK]);i++){
+		printf("%sData value : [%f]\n%s",KBLU,Stack[i].Value,KNRM);
+	}
 }
